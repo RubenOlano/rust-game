@@ -131,14 +131,54 @@ struct Snake {
 }
 
 impl Snake {
-    pub fn new(head: Segment) -> Self {
+    pub fn new(pos: GridPosition) -> Self {
+        let mut body = LinkedList::new();
+        body.push_back(Segment::new((pos.x - 1, pos.y).into()));
         Snake {
-            head,
+            head: Segment::new(pos),
             dir: Direction::Right,
-            body: LinkedList::new(),
-            ate: None,
             last_update_dir: Direction::Right,
+            body,
+            ate: None,
+            next_dir: None,
         }
+    }
+    fn eats(&self, food: &Food) -> bool {
+        self.head.pos == food.pos
+    }
+
+    fn eats_self(&self) -> bool {
+        for seg in self.body.iter() {
+            if seg.pos == self.head.pos {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn update(&mut self, food: &Food) {
+        if self.last_update_dir == self.dir && self.next_dir.is_some() {
+            self.dir = self.next_dir.unwrap();
+            self.next_dir = None;
+        }
+        let new_head_pos = GridPosition::new_from_move(self.head.pos, self.dir);
+        let new_head = Segment::new(new_head_pos);
+
+        self.body.push_front(new_head);
+        self.head = new_head;
+
+        if self.eats_self() {
+            self.ate = Some(Ate::Itself);
+        } else if self.eats(food) {
+            self.ate = Some(Ate::Food);
+        } else {
+            self.ate = None;
+        }
+
+        if self.ate.is_none() {
+            self.body.pop_back();
+        }
+        self.last_update_dir = self.dir;
     }
 }
 
